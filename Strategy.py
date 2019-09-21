@@ -1,5 +1,5 @@
 from API import Game
-
+import random
 
 class Strategy(Game):
     """
@@ -45,12 +45,18 @@ class Strategy(Game):
                 "attack": the direction in which to attack ("UP", "DOWN", "LEFT", or "RIGHT")
                 "priority": The bots move one at a time, so give the priority which you want them to act in (1,2, or 3)
     """
+
+    order = [1, 2, 3]
+
+
     def do_turn(self):
         my_units = self.get_my_units()
         decision = [{
-            "priority": i+1,
+            temp = random.randrange(1, len(order)),
+            "priority": order[temp],
+            order.remove[temp],
             "movement": ["DOWN"]*my_units[i].speed,
             "attack": "DOWN",
             "unitId": my_units[i].id
-            } for i in range(len(my_units))]
+        } for i in range(len(my_units))]
         return decision
