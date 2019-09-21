@@ -29,10 +29,10 @@ class Strategy(Game):
                 unit["unitId"] += 3
             unit["terrainPattern"] = [[False]*7 for j in range(7)]
             # These sample bot will do damage to the tiles to its left, right, and up. And build terrain behind it
-            unit["attackPattern"][3][2] = 2
-            unit["attackPattern"][2][3] = 2
-            unit["attackPattern"][4][2] = 2
-            unit["terrainPattern"][3][2] = True
+            # unit["attackPattern"][3][2] = 2
+            # unit["attackPattern"][2][3] = 2
+            # unit["attackPattern"][4][2] = 2
+            # unit["terrainPattern"][3][2] = True
             units.append(unit)
         return units
 
@@ -58,13 +58,13 @@ class Strategy(Game):
 
         gradient = self.flatten_2d_array(self.gen_atk_tileset_all())
 
-        greater_than_1 = list(filter(lambda tile: tile[0] > 1, gradient))
+        greater_than_1 = list(filter(lambda tile: tile[0] > 3, gradient))
 
         greater_than_1.sort(key=self.take_threat)
 
         for i in order:
-            movement = ["DOWN"]*my_units[unitId].speed
-            bestBackupMove = ["DOWN"]*my_units[unitId].speed
+            movement = ["STAY"]*my_units[unitId].speed
+            bestBackupMove = ["STAY"]*my_units[unitId].speed
             for tile in greater_than_1:
                 path = self.path_to(
                     (my_units[unitId].pos.x, my_units[unitId].pos.y), (tile[1], tile[2]), blockedTiles)
@@ -76,6 +76,9 @@ class Strategy(Game):
                         movement.append("STAY")
             if len(movement) == 0:
                 movement = bestBackupMove
+
+            print(unitId, flush=True)
+            print(movement, flush=True)
             decision.append(
                 {
                     "priority": i + 1,
@@ -155,10 +158,14 @@ class Strategy(Game):
 
         for i in range(12):
             for j in range(12):
+                x = j                                       # x is left to right
+                # y is bottom to top
+                y = (11 - i)
                 maxThreat = 0
                 for k in range(len(tileset3D)):
-                    maxThreat = max(maxThreat, tileset3D[k][i][j][0])
-                tilesetRowFinal.append((maxThreat, i, j))
+                    maxThreat = max(maxThreat, tileset3D[k][x][y][0])
+
+                tilesetRowFinal.append((maxThreat, x, y))
             tilesetFinal.append(tilesetRowFinal)
 
         return tilesetFinal
