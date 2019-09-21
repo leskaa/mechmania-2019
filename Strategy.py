@@ -16,6 +16,7 @@ class Strategy(Game):
         Note: terrainPattern and attackPattern should be indexed x,y. with (0,0) being the bottom left
         If player_id is 1, UnitIds for the bots should be 1,2,3. If player_id is 2, UnitIds should be 4,5,6
     """
+    
     def get_setup(self):
         units = []
         for i in range(3):
