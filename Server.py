@@ -33,7 +33,7 @@ def turn():
 def game_over():
     end_state = request.get_json(force=True)
     game = games.pop(end_state.get('gameId', 'game'), None)
-    game.game_over(end_state.get('result', 'TIE'));
+    game.game_over(end_state.get('result', 'TIE'))
     return json.dumps(end_state)
 
 
@@ -41,7 +41,8 @@ def game_over():
 def health():
     return "200"
 
+
 if __name__ == "__main__":
     module = import_module(sys.argv[1])  # import the player strategy file
     Strategy = getattr(module, 'Strategy')
-    app.run(host='0.0.0.0', port=int(os.environ['PORT']))
+    app.run(host='0.0.0.0', port=int(os.environ['PORT']), debug=True)
