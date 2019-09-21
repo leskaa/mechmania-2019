@@ -21,7 +21,7 @@ class Strategy(Game):
     def get_setup(self):
         units = []
         for i in range(3):
-            unit = {"health": 5, "speed": 5}
+            unit = {"health": 3, "speed": 5}
             unit["attackPattern"] = [[0] * 7 for j in range(7)]
             # if you are player1, unitIds will be 1,2,3. If you are player2, they will be 4,5,6
             unit["unitId"] = i + 1
@@ -29,10 +29,7 @@ class Strategy(Game):
                 unit["unitId"] += 3
             unit["terrainPattern"] = [[False]*7 for j in range(7)]
             # These sample bot will do damage to the tiles to its left, right, and up. And build terrain behind it
-            unit["attackPattern"][3][2] = 2
-            unit["attackPattern"][2][3] = 2
-            unit["attackPattern"][4][2] = 2
-            unit["terrainPattern"][3][2] = True
+            unit["attackPattern"][2][5] = 5
             units.append(unit)
         return units
 
@@ -50,52 +47,36 @@ class Strategy(Game):
 
     def do_turn(self):
         my_units = self.get_my_units()
-        order = list(range(len(my_units)))
+        firstRound = False
+        for unit in my_units:
+            if unit.pos.x == 0 and unit.pos.y == 0:
+                firstRound = True
+        if firstRound == False:
+            order = list(range(len(my_units)))
         random.shuffle(order)
         decision = []
-        unitId = 0
+        unitIndex = 0
         blockedTiles = self.get_blocks()
-
-        gradient = self.flatten_2d_array(self.gen_atk_tileset_all())
-
-        greater_than_1 = list(filter(lambda tile: tile[0] > 1, gradient))
-
-        greater_than_1.sort(key=self.take_threat)
+        for i in range(len(my_units)):
+            blockedTiles.append((my_units[i].pos.x, my_units[i].pos.y))
 
         for i in order:
-            movement = ["DOWN"]*my_units[unitId].speed
-            bestBackupMove = ["DOWN"]*my_units[unitId].speed
-            for tile in greater_than_1:
-                path = self.path_to(
-                    (my_units[unitId].pos.x, my_units[unitId].pos.y), (tile[1], tile[2]), blockedTiles)
-                if path != None:
-                    bestBackupMove = path[0: my_units[unitId].speed]
-                if path != None and len(path) <= my_units[unitId].speed:
-                    movement = path
-                    while len(movement) < my_units[unitId].speed:
-                        movement.append("STAY")
-            if len(movement) == 0:
-                movement = bestBackupMove
+            our_location = (my_units[unitIndex].pos.x,
+                            my_units[unitIndex].pos.y)
+            futureBlock = self.find_new_blocked_by_ally(
+                our_location, blockedTiles)
+            blockedTiles.remove(our_location)
             decision.append(
                 {
                     "priority": i + 1,
-                    "movement": movement,
-                    "attack": "DOWN",
-                    "unitId": my_units[unitId].id
+                    "movement": self.offensive_move(our_location, blockedTiles),
+                    "attack": self.able_to_attack(our_location),
+                    "unitId": my_units[unitIndex].id
                 }
             )
-            unitId += 1
+            blockedTiles.append(futureBlock)
+            unitIndex += 1
         return decision
-
-    def take_threat(self, elem):
-        return elem[0]
-
-    def flatten_2d_array(self, arr2d):
-        arr1d = []
-        for arr in arr2d:
-            for element in arr:
-                arr1d.append(element)
-        return arr1d
 
     def get_blocks(self):
         tiles_to_avoid = []
@@ -104,61 +85,106 @@ class Strategy(Game):
                 tile = self.get_tile((i, j))
                 if tile.type != 'BLANK':
                     tiles_to_avoid.append((i, j))
+        enemyUnits = self.get_enemy_units()
+        for unit in enemyUnits:
+            tiles_to_avoid.append((unit.pos.x, unit.pos.y))
         return tiles_to_avoid
 
-    """
-    Returns a 2d int array showing how close to the edge of a single unit's "offensive range" each tile is.
-    Does not account for attack patterns or obstacles.
-    """
+    def find_attack_positions(self):
+        attackPositions = []
+        enemy_units = self.get_target_units()
+        for enemy_unit in enemy_units:
+            attackPositions.append(
+                (enemy_unit[0] + 1, enemy_unit[1] - 2, enemy_unit[2]))
+            attackPositions.append(
+                (enemy_unit[0] - 2, enemy_unit[1] - 1, enemy_unit[2]))
+            attackPositions.append(
+                (enemy_unit[0] - 1, enemy_unit[1] + 2, enemy_unit[2]))
+            attackPositions.append(
+                (enemy_unit[0] + 2, enemy_unit[1] + 1, enemy_unit[2]))
+        for attackPosition in attackPositions:
+            if attackPosition[0] < 1 or attackPosition[1] < 0 or attackPosition[0] > 10 or attackPosition[1] > 10:
+                attackPositions.remove(attackPosition)
+        return attackPositions
 
-    def gen_atk_tileset_single(self, unit):
+    def find_new_blocked_by_ally(self, our_location, blocks):
+        attackPositions = self.find_attack_positions()
+        paths = []
+        for attackPosition in attackPositions:
+            paths.append((self.path_to(
+                our_location, (attackPosition[0], attackPosition[1]), blocks), attackPosition[2]))
+        paths = list(filter(lambda path: path[0] != None, paths))
+        botOnlyPaths = list(filter(lambda path: path[1] == 'BOT', paths))
+        if len(botOnlyPaths) > 0:
+            paths = botOnlyPaths
+        if len(paths) > 0:
+            path = paths[0][0]
+            print(path, flush=True)
+            for i in range(5):
+                path.append("STAY")
+            # THIS IS SPEED DEPENDENT!
+            path = path[:5]
+            x = our_location[0]
+            y = our_location[1]
+            for move in path:
+                if move == "UP":
+                    y += 1
+                elif move == "RIGHT":
+                    x += 1
+                elif move == "DOWN":
+                    y -= 1
+                elif move == "LEFT":
+                    x -= 1
+            return (x, y)
+        return our_location
 
-        tileset = []                                        # the 2d tileset returned
-        # a temp storage for each row of tileset
-        tilesetRow = []
-        # the range the unit can theoretically attack on their turn
-        atkRange = 4 + unit.speed
+    def offensive_move(self, our_location, blocks):
+        attackPositions = self.find_attack_positions()
+        paths = []
+        for attackPosition in attackPositions:
+            paths.append((self.path_to(
+                our_location, (attackPosition[0], attackPosition[1]), blocks), attackPosition[2]))
+        paths = list(filter(lambda path: path[0] != None, paths))
+        botOnlyPaths = list(filter(lambda path: path[1] == 'BOT', paths))
+        if len(botOnlyPaths) > 0:
+            paths = botOnlyPaths
+        if len(paths) > 0:
+            path = paths[0][0]
+            print(path, flush=True)
+            for i in range(5):
+                path.append("STAY")
+            # THIS IS SPEED DEPENDENT!
+            return path[:5]
+        return ["STAY", "STAY", "STAY", "STAY", "STAY"]
 
-        for i in range(12):
-            for j in range(12):
+    def able_to_attack(self, our_location):
+        enemy_units = self.get_target_units()
+        for enemy_unit in enemy_units:
+            if enemy_unit[0] + 1 == our_location[0] and enemy_unit[1] - 2 == our_location[1]:
+                print("FIRE UP", flush=True)
+                return "UP"
+            elif enemy_unit[0] - 2 == our_location[0] and enemy_unit[1] - 1 == our_location[1]:
+                print("FIRE RIGHT", flush=True)
+                return "RIGHT"
+            elif enemy_unit[0] - 1 == our_location[0] and enemy_unit[1] + 2 == our_location[1]:
+                print("FIRE DOWN", flush=True)
+                return "DOWN"
+            elif enemy_unit[0] - 1 == our_location[0] and enemy_unit[1] + 2 == our_location[1]:
+                print("FIRE LEFT", flush=True)
+                return "LEFT"
+            else:
+                return "DOWN"
 
-                x = j                                       # x is left to right
-                # y is bottom to top
-                y = (11 - i)
-
-                xDist = abs(unit.pos.x - x)
-                yDist = abs(unit.pos.y - y)
-
-                dist = xDist + yDist
-
-                # if the tile can be attacked by the unit in the next turn, it is nonzero
-                tilesetRow.append((max(0, atkRange - dist), x, y))
-
-            tileset.append(tilesetRow)
-
-        return tileset
-
-    """
-    Returns a 2d int array showing how close to the edge of all enemy units' "offensive range" each tile is.
-    Does not account for attack patterns or obstacles.
-    """
-
-    def gen_atk_tileset_all(self):
-        tileset3D = []
-
-        for unit in self.get_enemy_units():
-            if unit.hp > 0:
-                tileset3D.append(self.gen_atk_tileset_single(unit))
-
-        tilesetFinal = []
-        tilesetRowFinal = []
-
-        for i in range(12):
-            for j in range(12):
-                maxThreat = 0
-                for k in range(len(tileset3D)):
-                    maxThreat = max(maxThreat, tileset3D[k][i][j][0])
-                tilesetRowFinal.append((maxThreat, i, j))
-            tilesetFinal.append(tilesetRowFinal)
-
-        return tilesetFinal
+    # TODO: Add more rocks
+    def get_target_units(self):
+        target_units = list(
+            map(lambda unit: (unit.pos.x, unit.pos.y, "BOT"), self.get_enemy_units()))
+        if self.get_tile((4, 3)).type == 'DESTRUCTIBLE':
+            target_units.append((4, 3, "NOT BOT"))
+        if self.get_tile((5, 4)).type == 'DESTRUCTIBLE':
+            target_units.append((5, 4, "NOT BOT"))
+        if self.get_tile((6, 7)).type == 'DESTRUCTIBLE':
+            target_units.append((6, 7, "NOT BOT"))
+        if self.get_tile((7, 8)).type == 'DESTRUCTIBLE':
+            target_units.append((7, 8, "NOT BOT"))
+        return target_units
