@@ -46,6 +46,7 @@ class Strategy(Game):
                 "priority": The bots move one at a time, so give the priority which you want them to act in (1,2, or 3)
     """
     def do_turn(self):
+        ""Hi""
         my_units = self.get_my_units()
         decision = [{
             "priority": i+1,
