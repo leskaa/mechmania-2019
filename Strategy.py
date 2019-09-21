@@ -1,7 +1,6 @@
 from API import Game
 import random
 
-
 class Strategy(Game):
     """
         FILL THIS METHOD OUT FOR YOUR BOT:
@@ -65,3 +64,62 @@ class Strategy(Game):
             )
             unitId += 1
         return decision
+
+    """
+    Returns a 2d int array showing how close to the edge of a single unit's "offensive range" each tile is.
+    Does not account for attack patterns or obstacles.
+    """
+
+    def gen_atk_tileset_single(self, unit):
+        
+        tileset = []                                        # the 2d tileset returned
+        tilesetRow = []                                     # a temp storage for each row of tileset
+        atkRange = 4 + unit["speed"]                        # the range the unit can theoretically attack on their turn
+
+        for i in range(12):
+            for j in range(12):
+
+                x = j                                       # x is left to right
+                y = (11 - i)                                # y is bottom to top
+                
+                xDist = abs(unit["pos"][0] - x)
+                yDist = abs(unit["pos"][1] - y)
+
+                dist = xDist + yDist
+
+                tilesetRow.append(max(0, atkRange - dist))  # if the tile can be attacked by the unit in the next turn, it is nonzero
+
+            tileset.append(tilesetRow)
+        
+        return tileset
+
+    """
+    Returns a 2d int array showing how close to the edge of all enemy units' "offensive range" each tile is.
+    Does not account for attack patterns or obstacles.
+    """
+    def gen_atk_tileset_all(self):
+        tileset3D = []
+        
+        for unit in self.get_enemy_units():
+            if unit["hp"] > 0:
+                tileset3D.append(gen_atk_tileset_single(unit))
+        
+        tilesetFinal = []
+        tilesetRowFinal = []
+
+        for i in range(12):
+            for j in range(12):
+                maxThreat = 0
+                for k in range(len(tileset3D)):
+                    maxThreat = max(maxThreat, tileset3D[k][i][j])
+                tilesetRowFinal.append(maxThreat)
+            tilesetFinal.append(tilesetRowFinal)
+        
+        return tilesetFinal
+
+    #def move_bot(self, myUnit):
+        
+        # Default movement algorithm:
+        # If it is possible to move to a more advantageous combat position, move there
+        # Otherwise, if it is possible to move closer to the enemy, move there
+        # Otherwise, hold still
