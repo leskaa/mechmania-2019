@@ -1,6 +1,7 @@
 from API import Game
 import random
 
+
 class Strategy(Game):
     """
         FILL THIS METHOD OUT FOR YOUR BOT:
@@ -16,6 +17,7 @@ class Strategy(Game):
         Note: terrainPattern and attackPattern should be indexed x,y. with (0,0) being the bottom left
         If player_id is 1, UnitIds for the bots should be 1,2,3. If player_id is 2, UnitIds should be 4,5,6
     """
+
     def get_setup(self):
         units = []
         for i in range(3):
@@ -46,17 +48,20 @@ class Strategy(Game):
                 "priority": The bots move one at a time, so give the priority which you want them to act in (1,2, or 3)
     """
 
-    order = [1, 2, 3]
-
-
     def do_turn(self):
         my_units = self.get_my_units()
-        decision = [{
-            temp = random.randrange(1, len(order)),
-            "priority": order[temp],
-            order.remove[temp],
-            "movement": ["DOWN"]*my_units[i].speed,
-            "attack": "DOWN",
-            "unitId": my_units[i].id
-        } for i in range(len(my_units))]
+        order = list(range(len(my_units)))
+        random.shuffle(order)
+        decision = []
+        unitId = 0
+        for i in order:
+            decision.append(
+                {
+                    "priority": i + 1,
+                    "movement": ["DOWN"]*my_units[unitId].speed,
+                    "attack": "DOWN",
+                    "unitId": my_units[unitId].id
+                }
+            )
+            unitId += 1
         return decision
