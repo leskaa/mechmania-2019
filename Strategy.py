@@ -79,6 +79,7 @@ class Strategy(Game):
             unitIndex += 1
         return decision
 
+    # Remove tiles from movement options if they are covered by battle royale border
     def get_blocks(self):
         tiles_to_avoid = []
         for i in range(12):
@@ -121,6 +122,7 @@ class Strategy(Game):
                 tiles_to_avoid.append(self.get_tile((7, i)))
         return tiles_to_avoid
 
+    # Find tiles that would allow for attacking an enemy's current location
     def find_attack_positions(self):
         attackPositions = []
         enemy_units = self.get_target_units()
@@ -138,6 +140,7 @@ class Strategy(Game):
                 attackPositions.remove(attackPosition)
         return attackPositions
 
+    # Returns positions that will be blocked by future allied movement
     def find_new_blocked_by_ally(self, our_location, blocks):
         attackPositions = self.find_attack_positions()
         paths = []
@@ -169,6 +172,7 @@ class Strategy(Game):
             return (x, y)
         return our_location
 
+    # Returns a path to use for movement
     def offensive_move(self, our_location, blocks):
         attackPositions = self.find_attack_positions()
         paths = []
@@ -187,6 +191,7 @@ class Strategy(Game):
             return path[:4]
         return ["STAY", "STAY", "STAY", "STAY"]
 
+    # Returns direction to fire if movement will leave us somewhere we will be able to hit a enemy that has yet to move
     def able_to_attack(self, our_location):
         enemy_units = self.get_target_units()
         for enemy_unit in enemy_units:
@@ -205,7 +210,7 @@ class Strategy(Game):
             else:
                 return "DOWN"
 
-    # TODO: Add more rocks
+    # Returns list of units to attack (Enemy bots and rocks)
     def get_target_units(self):
         target_units = list(
             map(lambda unit: (unit.pos.x, unit.pos.y, "BOT"), self.get_enemy_units()))
