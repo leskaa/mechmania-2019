@@ -21,7 +21,7 @@ class Strategy(Game):
     def get_setup(self):
         units = []
         for i in range(3):
-            unit = {"health": 3, "speed": 5}
+            unit = {"health": 6, "speed": 4}
             unit["attackPattern"] = [[0] * 7 for j in range(7)]
             # if you are player1, unitIds will be 1,2,3. If you are player2, they will be 4,5,6
             unit["unitId"] = i + 1
@@ -29,7 +29,7 @@ class Strategy(Game):
                 unit["unitId"] += 3
             unit["terrainPattern"] = [[False]*7 for j in range(7)]
             # These sample bot will do damage to the tiles to its left, right, and up. And build terrain behind it
-            unit["attackPattern"][2][5] = 5
+            unit["attackPattern"][3][5] = 4
             units.append(unit)
         return units
 
@@ -66,6 +66,7 @@ class Strategy(Game):
             futureBlock = self.find_new_blocked_by_ally(
                 our_location, blockedTiles)
             blockedTiles.remove(our_location)
+            print(self.offensive_move(our_location, blockedTiles), flush=True)
             decision.append(
                 {
                     "priority": i + 1,
@@ -88,6 +89,36 @@ class Strategy(Game):
         enemyUnits = self.get_enemy_units()
         for unit in enemyUnits:
             tiles_to_avoid.append((unit.pos.x, unit.pos.y))
+        if self.turnsTaken > 13:
+            for i in range(12):
+                tiles_to_avoid.append(self.get_tile((i, 0)))
+                tiles_to_avoid.append(self.get_tile((i, 11)))
+                tiles_to_avoid.append(self.get_tile((0, i)))
+                tiles_to_avoid.append(self.get_tile((11, i)))
+        if self.turnsTaken > 18:
+            for i in range(12):
+                tiles_to_avoid.append(self.get_tile((i, 2)))
+                tiles_to_avoid.append(self.get_tile((i, 10)))
+                tiles_to_avoid.append(self.get_tile((2, i)))
+                tiles_to_avoid.append(self.get_tile((10, i)))
+        if self.turnsTaken > 22:
+            for i in range(12):
+                tiles_to_avoid.append(self.get_tile((i, 3)))
+                tiles_to_avoid.append(self.get_tile((i, 9)))
+                tiles_to_avoid.append(self.get_tile((3, i)))
+                tiles_to_avoid.append(self.get_tile((9, i)))
+        if self.turnsTaken > 25:
+            for i in range(12):
+                tiles_to_avoid.append(self.get_tile((i, 4)))
+                tiles_to_avoid.append(self.get_tile((i, 8)))
+                tiles_to_avoid.append(self.get_tile((4, i)))
+                tiles_to_avoid.append(self.get_tile((8, i)))
+        if self.turnsTaken > 27:
+            for i in range(12):
+                tiles_to_avoid.append(self.get_tile((i, 5)))
+                tiles_to_avoid.append(self.get_tile((i, 7)))
+                tiles_to_avoid.append(self.get_tile((5, i)))
+                tiles_to_avoid.append(self.get_tile((7, i)))
         return tiles_to_avoid
 
     def find_attack_positions(self):
@@ -95,13 +126,13 @@ class Strategy(Game):
         enemy_units = self.get_target_units()
         for enemy_unit in enemy_units:
             attackPositions.append(
-                (enemy_unit[0] + 1, enemy_unit[1] - 2, enemy_unit[2]))
+                (enemy_unit[0], enemy_unit[1] + 2, enemy_unit[2]))
             attackPositions.append(
-                (enemy_unit[0] - 2, enemy_unit[1] - 1, enemy_unit[2]))
+                (enemy_unit[0] + 2, enemy_unit[1], enemy_unit[2]))
             attackPositions.append(
-                (enemy_unit[0] - 1, enemy_unit[1] + 2, enemy_unit[2]))
+                (enemy_unit[0], enemy_unit[1] - 2, enemy_unit[2]))
             attackPositions.append(
-                (enemy_unit[0] + 2, enemy_unit[1] + 1, enemy_unit[2]))
+                (enemy_unit[0] - 2, enemy_unit[1], enemy_unit[2]))
         for attackPosition in attackPositions:
             if attackPosition[0] < 1 or attackPosition[1] < 0 or attackPosition[0] > 10 or attackPosition[1] > 10:
                 attackPositions.remove(attackPosition)
@@ -120,10 +151,10 @@ class Strategy(Game):
         if len(paths) > 0:
             path = paths[0][0]
             print(path, flush=True)
-            for i in range(5):
+            for i in range(4):
                 path.append("STAY")
             # THIS IS SPEED DEPENDENT!
-            path = path[:5]
+            path = path[:4]
             x = our_location[0]
             y = our_location[1]
             for move in path:
@@ -150,26 +181,25 @@ class Strategy(Game):
             paths = botOnlyPaths
         if len(paths) > 0:
             path = paths[0][0]
-            print(path, flush=True)
-            for i in range(5):
+            for i in range(4):
                 path.append("STAY")
             # THIS IS SPEED DEPENDENT!
-            return path[:5]
-        return ["STAY", "STAY", "STAY", "STAY", "STAY"]
+            return path[:4]
+        return ["STAY", "STAY", "STAY", "STAY"]
 
     def able_to_attack(self, our_location):
         enemy_units = self.get_target_units()
         for enemy_unit in enemy_units:
-            if enemy_unit[0] + 1 == our_location[0] and enemy_unit[1] - 2 == our_location[1]:
+            if enemy_unit[0] == our_location[0] and enemy_unit[1] + 2 == our_location[1]:
                 print("FIRE UP", flush=True)
                 return "UP"
-            elif enemy_unit[0] - 2 == our_location[0] and enemy_unit[1] - 1 == our_location[1]:
+            elif enemy_unit[0] == our_location[0] + 2 and enemy_unit[1] == our_location[1]:
                 print("FIRE RIGHT", flush=True)
                 return "RIGHT"
-            elif enemy_unit[0] - 1 == our_location[0] and enemy_unit[1] + 2 == our_location[1]:
+            elif enemy_unit[0] == our_location[0] and enemy_unit[1] - 2 == our_location[1]:
                 print("FIRE DOWN", flush=True)
                 return "DOWN"
-            elif enemy_unit[0] - 1 == our_location[0] and enemy_unit[1] + 2 == our_location[1]:
+            elif enemy_unit[0] == our_location[0] - 2 and enemy_unit[1] == our_location[1]:
                 print("FIRE LEFT", flush=True)
                 return "LEFT"
             else:
